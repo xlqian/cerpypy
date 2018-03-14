@@ -8,7 +8,28 @@ static std::vector<std::string> keyCollection{};
 
 //static std::map<std::string, JsonMaker> makerMap{};
 
+static std::map<std::string, size_t> maker_name_idx_map{};
+
 static std::vector<std::pair<std::string, JsonMaker>> makerCollection{};
+
+
+const static auto int_lambda = [&](PyObject* p, rapidjson::Value& v){
+	v.Set(PyLong_AsLong(p));
+};
+
+const static auto float_lambda = [&](PyObject* p, rapidjson::Value& v){
+	v.Set(PyFloat_AsDouble(p));
+};
+
+const static auto string_lambda = [&](PyObject* p, rapidjson::Value& v){
+	v.SetString(rapidjson::StringRef(PyString_AsString(p)));
+};
+
+
+const static std::map<PyTypeObject*, std::function<void(PyObject*, rapidjson::Value&)>>
+		lambda_map{{&PyString_Type, string_lambda},
+				   {&PyFloat_Type, float_lambda},
+	               {&PyInt_Type, int_lambda}};
 
 JsonMaker::JsonMaker(const std::vector<std::tuple<int,
 												  std::string,
@@ -39,6 +60,7 @@ JsonMaker::JsonMaker(const std::vector<std::tuple<int,
 			auto jm = JsonMaker();
 			jm.is_leaf = true;
 			makerCollection.emplace_back(maker_name, std::move(jm));
+			maker_name_idx_map.emplace(maker_name, maker_id);
 		}
 
 		_makers.emplace_back(key_id, maker_id, py::reinterpret_borrow<py::object>(getter));
@@ -60,13 +82,13 @@ void JsonMaker::make(const py::object& entry, rapidjson::Value& json, Allocator&
 			json.AddMember(rapidjson::StringRef(key.c_str()), sub_value.Move(), allocator);
 		}else{
 			const auto& sub_entry = std::get<2>(p)(entry);
-			if (PyInt_Check(sub_entry.ptr())){
-				json.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()),  PyLong_AsLong(sub_entry.ptr()), allocator);
-			}else if (PyFloat_Check(sub_entry.ptr())){
-				json.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()),  PyFloat_AsDouble(sub_entry.ptr()), allocator);
-			}else if (PyString_Check(sub_entry.ptr())){
-				json.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()),  rapidjson::StringRef(PyString_AsString(sub_entry.ptr())), allocator);
-			}
+			PyTypeObject* sub_entry_type = sub_entry.ptr()->ob_type;
+
+			rapidjson::Value v;
+			auto it = lambda_map.find(sub_entry_type);
+			assert(it!=lambda_map.end());
+			it->second(sub_entry.ptr(), v);
+			json.AddMember(rapidjson::StringRef(key.c_str()), v.Move(), allocator);
 		}
 	};
 };
@@ -91,21 +113,18 @@ std::string JsonMaker::make(const py::object& entry) {
 			_doc.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()), sub_value.Move(), allocator);
 		}else {
 			const auto& sub_entry = std::get<2>(p)(entry);
-			if (PyInt_Check(sub_entry.ptr())){
-				_doc.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()),  PyLong_AsLong(sub_entry.ptr()), allocator);
-			}else if (PyFloat_Check(sub_entry.ptr())){
-				_doc.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()),  PyFloat_AsDouble(sub_entry.ptr()), allocator);
-			}else if (PyString_Check(sub_entry.ptr())){
-				_doc.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()),  rapidjson::StringRef(PyString_AsString(sub_entry.ptr())), allocator);
-			}
+			PyTypeObject* sub_entry_type = sub_entry.ptr()->ob_type;
+			rapidjson::Value v;
+			auto it = lambda_map.find(sub_entry_type);
+			assert(it!=lambda_map.end());
+			it->second(sub_entry.ptr(), v);
+			_doc.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()), v.Move(), allocator);
 		}
 	};
 	rapidjson::StringBuffer buffer;
 	rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
 	_doc.Accept(writer);
-	//std::cout << buffer.GetString() << std::endl;
 	return  buffer.GetString();
-	//return buffer.GetString();
 }
 
 
@@ -137,15 +156,13 @@ void register_json_maker(const std::string& cls_name, const py::list& input){
 		maker_input.push_back(std::make_tuple(key_id, maker_name, py::reinterpret_borrow<py::object>(getter), it->second));
     }
 	makerCollection.emplace_back(cls_name, JsonMaker{maker_input});
+	maker_name_idx_map.emplace(cls_name, makerCollection.size() - 1);
+
 }
 
 std::string JsonMakerCaller::make(const py::object& entry) const {
-	for(auto& p : makerCollection) {
-		if(cls_name == p.first) {
-			return p.second.make(entry);
-		}
-	}
-	throw std::exception();
+	auto i = maker_name_idx_map[cls_name];
+	return makerCollection[i].second.make(entry);
 } ;
 
 
