@@ -38,7 +38,8 @@ namespace cerpypy {
     	rapidjson::Type objType{rapidjson::kObjectType};
     	rapidjson::Document _doc;
     	rapidjson::Value _json{rapidjson::kObjectType};
-    	std::vector<std::tuple<int, std::string, py::object>> _makers;
+    	//std::vector<std::tuple<int, std::string, py::object>> _makers;
+    	std::vector<std::tuple<int, int, py::object>> _makers;
     };
 
     void register_json_maker(const std::string& cls_name, const py::list& input);

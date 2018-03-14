@@ -6,7 +6,7 @@ namespace cerpypy {
 
 static std::vector<std::string> keyCollection{};
 
-static std::map<std::string, JsonMaker> makerMap{};
+//static std::map<std::string, JsonMaker> makerMap{};
 
 static std::vector<std::pair<std::string, JsonMaker>> makerCollection{};
 
@@ -24,12 +24,24 @@ JsonMaker::JsonMaker(const std::vector<std::tuple<int,
 		if (! PyCallable_Check(getter.ptr())) {
 			 throw std::exception();
 		}
-		auto it = makerMap.find(maker_name);
-		if(it==makerMap.cend()) {
-			auto& maker = makerMap[maker_name];
-			maker.is_leaf = true;
+
+		bool found = false;
+		size_t maker_id = 0;
+		for(const auto& p : makerCollection) {
+			if(maker_name == p.first) {
+				found = true;
+				break;
+			}
+			++maker_id;
 		}
-		_makers.emplace_back(key_id, maker_name, getter);
+
+		if (!found) {
+			auto jm = JsonMaker();
+			jm.is_leaf = true;
+			makerCollection.emplace_back(maker_name, std::move(jm));
+		}
+
+		_makers.emplace_back(key_id, maker_id, py::reinterpret_borrow<py::object>(getter));
 	}
 }
 
@@ -39,14 +51,22 @@ void JsonMaker::make(const py::object& entry, rapidjson::Value& json, Allocator&
 
 	for(const auto& p : _makers) {
 		const std::string& key = keyCollection[std::get<0>(p)];
-		const auto& maker = makerMap[std::get<1>(p)];
+
+		const auto& maker = makerCollection[std::get<1>(p)].second;
 		if (!maker.is_leaf){
 			rapidjson::Value sub_value{rapidjson::kObjectType};
-			makerMap[std::get<1>(p)].make(std::get<2>(p)(entry), sub_value, allocator);
-			json.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()), sub_value.Move(), allocator);
+			const auto& sub_entry = std::get<2>(p)(entry);
+			maker.make(sub_entry, sub_value, allocator);
+			json.AddMember(rapidjson::StringRef(key.c_str()), sub_value.Move(), allocator);
 		}else{
-			rapidjson::Value sub_value("toto");
-			json.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()), sub_value.Move(), allocator);
+			const auto& sub_entry = std::get<2>(p)(entry);
+			if (PyInt_Check(sub_entry.ptr())){
+				json.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()),  PyLong_AsLong(sub_entry.ptr()), allocator);
+			}else if (PyFloat_Check(sub_entry.ptr())){
+				json.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()),  PyFloat_AsDouble(sub_entry.ptr()), allocator);
+			}else if (PyString_Check(sub_entry.ptr())){
+				json.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()),  rapidjson::StringRef(PyString_AsString(sub_entry.ptr())), allocator);
+			}
 		}
 	};
 };
@@ -62,10 +82,23 @@ std::string JsonMaker::make(const py::object& entry) {
 	_doc.SetObject();
 
 	for(const auto& p : _makers) {
-		rapidjson::Value sub_value{rapidjson::kObjectType};
-		makerMap[std::get<1>(p)].make(std::get<2>(p)(entry), sub_value, allocator);
-		_doc.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()), sub_value.Move(), allocator);
-
+		const std::string& key = keyCollection[std::get<0>(p)];
+		const auto& maker = makerCollection[std::get<1>(p)].second;
+		if (!maker.is_leaf){
+			rapidjson::Value sub_value{rapidjson::kObjectType};
+			const auto& sub_entry = std::get<2>(p)(entry);
+			maker.make(sub_entry, sub_value, allocator);
+			_doc.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()), sub_value.Move(), allocator);
+		}else {
+			const auto& sub_entry = std::get<2>(p)(entry);
+			if (PyInt_Check(sub_entry.ptr())){
+				_doc.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()),  PyLong_AsLong(sub_entry.ptr()), allocator);
+			}else if (PyFloat_Check(sub_entry.ptr())){
+				_doc.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()),  PyFloat_AsDouble(sub_entry.ptr()), allocator);
+			}else if (PyString_Check(sub_entry.ptr())){
+				_doc.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()),  rapidjson::StringRef(PyString_AsString(sub_entry.ptr())), allocator);
+			}
+		}
 	};
 	rapidjson::StringBuffer buffer;
 	rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -87,7 +120,7 @@ void register_json_maker(const std::string& cls_name, const py::list& input){
 						   rapidjson::Type>> maker_input;
 
 		for (const auto& item : input){
-		py::tuple tuple = py::cast<py::tuple>(item);
+		py::tuple tuple = py::reinterpret_borrow<py::tuple>(item);
 
 		const std::string& key = py::str(tuple[0]);
 		const std::string& maker_name = py::str(tuple[1]);
@@ -101,19 +134,18 @@ void register_json_maker(const std::string& cls_name, const py::list& input){
 		int key_id = keyCollection.size();
 		keyCollection.push_back(key);
 
-		maker_input.push_back(std::make_tuple(key_id, maker_name, getter, it->second));
+		maker_input.push_back(std::make_tuple(key_id, maker_name, py::reinterpret_borrow<py::object>(getter), it->second));
     }
-	makerMap.emplace(cls_name, JsonMaker{maker_input});
+	makerCollection.emplace_back(cls_name, JsonMaker{maker_input});
 }
 
 std::string JsonMakerCaller::make(const py::object& entry) const {
-	auto it = makerMap.find(cls_name);
-	if (it == makerMap.end()) {
-		throw std::exception();
-	}else {
-	    return it->second.make(entry);
+	for(auto& p : makerCollection) {
+		if(cls_name == p.first) {
+			return p.second.make(entry);
+		}
 	}
-
+	throw std::exception();
 } ;
 
 

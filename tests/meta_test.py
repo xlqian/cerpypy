@@ -35,7 +35,8 @@ class subRoot(with_metaclass(Meta, object)):
 class Root(with_metaclass(Meta, object)):
     Hey = CerpypyField(sub_field=None, object_type='object', getter=itemgetter('Hey'))
     Hello = CerpypyField(sub_field=subRoot, object_type='object', getter=itemgetter('Hello'))
-    World = CerpypyField(sub_field=subRoot, object_type='array', getter=itemgetter('World'))
+    A_World = CerpypyField(sub_field=subRoot, object_type='array', getter=itemgetter('A_World'))
+    B_World = CerpypyField(sub_field=subRoot, object_type='array', getter=itemgetter('B_World'))
 
 import timeit
 
@@ -45,15 +46,20 @@ d = {
         'Here': 1,
         'There': 2
     },
-    'World': {
+    'A_World': {
+        'Here': 1,
+        'There': 2
+    },
+    'B_World': {
         'Here': 1,
         'There': 2
     }
 }
 
-def test1():
-     cerpypy.JsonMakerCaller("Root").make(d)
-test1()
+def test():
+     print cerpypy.JsonMakerCaller("Root").make(d)
+test()
+
 import serpy
 
 class S(serpy.DictSerializer):
@@ -63,7 +69,13 @@ class S(serpy.DictSerializer):
 class D(serpy.DictSerializer):
     Hey = serpy.Field()
     Hello = S()
-    World = S()
+    A_World = S()
+    B_World = S()
+
+
+def test1():
+    cerpypy.JsonMakerCaller("Root").make(d)
+
 
 def test2():
     D(d).data
