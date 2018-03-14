@@ -36,11 +36,6 @@ JsonMaker::JsonMaker(const std::vector<std::tuple<int,
 template<typename Allocator>
 void JsonMaker::make(const py::object& entry, rapidjson::Value& json, Allocator& allocator) const {
 
-	if (is_leaf) {
-		//json['a'] = "toto";
-		//std::cout <<std::string(py::str(entry)) << std::endl;
-
-	}
 
 	for(const auto& p : _makers) {
 		const std::string& key = keyCollection[std::get<0>(p)];
@@ -56,11 +51,13 @@ void JsonMaker::make(const py::object& entry, rapidjson::Value& json, Allocator&
 	};
 };
 
-void JsonMaker::make(const py::object& entry) {
+std::string JsonMaker::make(const py::object& entry) {
+	/*
+	 * Need to handle this case
 	if (is_leaf) {
 		std::cout << "is_node" << std::endl;
 	}
-
+	*/
 	auto& allocator = _doc.GetAllocator();
 	_doc.SetObject();
 
@@ -74,6 +71,7 @@ void JsonMaker::make(const py::object& entry) {
 	rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
 	_doc.Accept(writer);
 	//std::cout << buffer.GetString() << std::endl;
+	return  buffer.GetString();
 	//return buffer.GetString();
 }
 
@@ -108,12 +106,12 @@ void register_json_maker(const std::string& cls_name, const py::list& input){
 	makerMap.emplace(cls_name, JsonMaker{maker_input});
 }
 
-void JsonMakerCaller::make(const py::object& entry) const {
+std::string JsonMakerCaller::make(const py::object& entry) const {
 	auto it = makerMap.find(cls_name);
 	if (it == makerMap.end()) {
 		throw std::exception();
 	}else {
-	    it->second.make(entry);
+	    return it->second.make(entry);
 	}
 
 } ;

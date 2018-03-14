@@ -52,7 +52,7 @@ d = {
 }
 
 def test1():
-    cerpypy.JsonMakerCaller("Root").make(d)
+     cerpypy.JsonMakerCaller("Root").make(d)
 test1()
 import serpy
 

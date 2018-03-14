@@ -2,7 +2,7 @@
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
-
+#include <python2.7/Python.h>
 #include <string>
 #include <iostream>
 #include <memory>
@@ -32,7 +32,7 @@ namespace cerpypy {
     	JsonMaker(const std::vector<std::tuple<int, std::string, py::object, rapidjson::Type>>& input);
     	template<typename Allocator>
     	void make(const py::object& entry, rapidjson::Value& json, Allocator& allocator) const;
-    	void make(const py::object& entry);
+    	std::string make(const py::object& entry);
 
     	bool is_leaf{false};
     	rapidjson::Type objType{rapidjson::kObjectType};
@@ -45,7 +45,7 @@ namespace cerpypy {
 
     struct JsonMakerCaller{
     	JsonMakerCaller(const std::string& cls_name): cls_name(cls_name){}
-    	void make(const py::object& entry) const ;
+    	std::string make(const py::object& entry) const ;
     	std::string cls_name;
     };
 }
