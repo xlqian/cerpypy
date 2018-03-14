@@ -8,7 +8,7 @@ static std::vector<std::string> keyCollection{};
 
 static std::map<std::string, JsonMaker> makerMap{};
 
-static std::vector<JsonMaker> makerCollection{};
+static std::vector<std::pair<std::string, JsonMaker>> makerCollection{};
 
 JsonMaker::JsonMaker(const std::vector<std::tuple<int,
 												  std::string,
@@ -37,21 +37,28 @@ template<typename Allocator>
 void JsonMaker::make(const py::object& entry, rapidjson::Value& json, Allocator& allocator) const {
 
 	if (is_leaf) {
-		json['a'] = "toto";
-		//std::cout << "is_node" << std::endl;
+		//json['a'] = "toto";
+		//std::cout <<std::string(py::str(entry)) << std::endl;
 
 	}
 
 	for(const auto& p : _makers) {
-		rapidjson::Value sub_value{rapidjson::kObjectType};
-		makerMap[std::get<1>(p)].make(std::get<2>(p)(entry), sub_value, allocator);
-		json.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()), sub_value.Move(), allocator);
+		const std::string& key = keyCollection[std::get<0>(p)];
+		const auto& maker = makerMap[std::get<1>(p)];
+		if (!maker.is_leaf){
+			rapidjson::Value sub_value{rapidjson::kObjectType};
+			makerMap[std::get<1>(p)].make(std::get<2>(p)(entry), sub_value, allocator);
+			json.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()), sub_value.Move(), allocator);
+		}else{
+			rapidjson::Value sub_value("toto");
+			json.AddMember(rapidjson::StringRef(keyCollection[std::get<0>(p)].c_str()), sub_value.Move(), allocator);
+		}
 	};
 };
 
 void JsonMaker::make(const py::object& entry) {
 	if (is_leaf) {
-		//std::cout << "is_node" << std::endl;
+		std::cout << "is_node" << std::endl;
 	}
 
 	auto& allocator = _doc.GetAllocator();

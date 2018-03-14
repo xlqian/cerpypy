@@ -53,7 +53,7 @@ d = {
 
 def test1():
     cerpypy.JsonMakerCaller("Root").make(d)
-
+test1()
 import serpy
 
 class S(serpy.DictSerializer):
@@ -69,8 +69,6 @@ def test2():
     D(d).data
 
 
-import operator
-#print operator.itemgetter(d, "World")
 #print(cerpypy.JsonMakerCaller("Root").make(d))
 print(timeit.timeit(test1))
 print(timeit.timeit(test2))
