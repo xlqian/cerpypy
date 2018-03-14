@@ -33,7 +33,7 @@ class subRoot(with_metaclass(Meta, object)):
 
 
 class Root(with_metaclass(Meta, object)):
-    Hey = CerpypyField(sub_field=None, object_type='object', getter=itemgetter('Hey'))
+    Hey = CerpypyField(sub_field=None, object_type='array', getter=itemgetter('Hey'))
     Hello = CerpypyField(sub_field=subRoot, object_type='object', getter=itemgetter('Hello'))
     A_World = CerpypyField(sub_field=subRoot, object_type='array', getter=itemgetter('A_World'))
     B_World = CerpypyField(sub_field=subRoot, object_type='array', getter=itemgetter('B_World'))
@@ -41,7 +41,7 @@ class Root(with_metaclass(Meta, object)):
 import timeit
 
 d = {
-    'Hey': 'hey',
+    'Hey': ['hey', 'ha', 'ho'],
     'Hello': {
         'Here': 1,
         'There': 2
@@ -67,7 +67,7 @@ class S(serpy.DictSerializer):
     There = serpy.Field()
 
 class D(serpy.DictSerializer):
-    Hey = serpy.Field()
+    Hey = serpy.Serializer(many=True)
     Hello = S()
     A_World = S()
     B_World = S()
