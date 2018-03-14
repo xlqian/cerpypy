@@ -41,7 +41,7 @@ class Root(with_metaclass(Meta, object)):
 import timeit
 
 d = {
-    'Hey': ['hey', 'ha', 'ho'],
+    'Hey': [1, 2, 3, 4, 5, 6, 7, 8],
     'Hello': {
         'Here': 1,
         'There': 2

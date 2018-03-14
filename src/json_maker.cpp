@@ -129,7 +129,7 @@ std::string JsonMaker::make(const py::object& entry) {
 					rapidjson::Value item_v;
 					auto it = lambda_map.find(item_type);
 					assert(it!=lambda_map.end());
-					it->second(sub_entry.ptr(), item_v);
+					it->second(item.ptr(), item_v);
 					v.PushBack(item_v.Move(), allocator);
 				}
 				_doc.AddMember(rapidjson::StringRef(key.c_str()), v.Move(), allocator);
