@@ -18,15 +18,6 @@ namespace py = pybind11;
 namespace cerpypy {
     const char * version();
 
-    class Meta {
-    public:
-	    static py::object
-	    newClass(py::object cls,
-                 std::string cls_name, 
-                 py::tuple bases, 
-                 py::dict attrs);
-    };
-
     struct JsonMaker{
     	JsonMaker()=default;
     	JsonMaker(const std::vector<std::tuple<int, std::string, py::object, rapidjson::Type>>& input);
@@ -45,7 +36,7 @@ namespace cerpypy {
     void register_json_maker(const std::string& cls_name, const py::list& input);
 
     struct JsonMakerCaller{
-    	JsonMakerCaller(const std::string& cls_name): cls_name(cls_name){}
+    	JsonMakerCaller(const std::string& cls_name);
     	std::string make(const py::object& entry) const ;
     	std::string cls_name;
     };

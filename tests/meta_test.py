@@ -26,22 +26,28 @@ class Meta(type):
 
 from operator import itemgetter
 
+class subRoot2(with_metaclass(Meta, object)):
+    Greeting = CerpypyField(object_type='object', getter=itemgetter('Greeting'))
+    Fine = CerpypyField(object_type='object', getter=itemgetter('Fine'))
 
 class subRoot(with_metaclass(Meta, object)):
     Here = CerpypyField(object_type='object', getter=itemgetter('Here'))
-    There = CerpypyField(object_type='array', getter=itemgetter('There'))
+    There = CerpypyField(object_type='object', getter=itemgetter('There'))
 
 
 class Root(with_metaclass(Meta, object)):
-    Hey = CerpypyField(sub_field=None, object_type='array', getter=itemgetter('Hey'))
+    Hey = CerpypyField(sub_field=subRoot2, object_type='array', getter=itemgetter('Hey'))
     Hello = CerpypyField(sub_field=subRoot, object_type='object', getter=itemgetter('Hello'))
-    A_World = CerpypyField(sub_field=subRoot, object_type='array', getter=itemgetter('A_World'))
+    A_World = CerpypyField(sub_field=subRoot, object_type='object', getter=itemgetter('A_World'))
     B_World = CerpypyField(sub_field=subRoot, object_type='array', getter=itemgetter('B_World'))
 
 import timeit
 
 d = {
-    'Hey': [1, 2, 3, 4, 5, 6, 7, 8],
+    'Hey': [{
+        'Greeting': 42,
+        'Fine': 43
+    }]*50,
     'Hello': {
         'Here': 1,
         'There': 2
@@ -50,37 +56,42 @@ d = {
         'Here': 1,
         'There': 2
     },
-    'B_World': {
-        'Here': 'titi',
-        'There': 'toto'
-    }
+    'B_World': [{
+        'Here': 42,
+        'There': 43
+    }]*50
 }
 
-def test():
-     print cerpypy.JsonMakerCaller("Root").make(d)
-test()
 
 import serpy
 
 class S(serpy.DictSerializer):
-    Here = serpy.Field()
-    There = serpy.Field()
+    Here = serpy.IntField()
+    There = serpy.IntField()
+
+class S1(serpy.DictSerializer):
+    Greeting = serpy.IntField()
+    Fine = serpy.IntField()
 
 class D(serpy.DictSerializer):
-    Hey = serpy.Serializer(many=True)
+    Hey = S1(many=True)
     Hello = S()
     A_World = S()
-    B_World = S()
+    B_World = S(many=True)
 
 
 def test1():
-    cerpypy.JsonMakerCaller("Root").make(d)
+    return cerpypy.JsonMakerCaller("Root").make(d)
 
-
+import ujson
 def test2():
-    D(d).data
+    return ujson.dumps(D(d).data)
 
+print(test1())
+print(test2())
 
-#print(cerpypy.JsonMakerCaller("Root").make(d))
-print(timeit.timeit(test1))
-print(timeit.timeit(test2))
+t1 = timeit.timeit(test1, number=10000)
+
+t2 = timeit.timeit(test2, number=10000)
+
+print "t1: {}, t2 {}, t1/t2: {}".format(t1, t2, (t1/t2))
