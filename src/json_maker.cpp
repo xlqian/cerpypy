@@ -1,6 +1,5 @@
 #include "cerpypy.h"
 #include <python2.7/Python.h>
-
 namespace cerpypy {
 
 
@@ -203,7 +202,7 @@ JsonMakerCaller::JsonMakerCaller(const std::string& cls_name): cls_name(cls_name
 }
 
 std::string JsonMakerCaller::make(const py::object& entry) const {
-	const static int i = maker_name_idx_map[cls_name];
+	int i = maker_name_idx_map[cls_name];
 	return makerCollection[i].second.make(entry);
 } ;
 

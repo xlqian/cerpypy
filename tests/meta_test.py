@@ -47,7 +47,7 @@ d = {
     'Hey': [{
         'Greeting': 42,
         'Fine': 43
-    }]*50,
+    }]*20,
     'Hello': {
         'Here': 1,
         'There': 2
@@ -70,8 +70,8 @@ class S(serpy.DictSerializer):
     There = serpy.IntField()
 
 class S1(serpy.DictSerializer):
-    Greeting = serpy.IntField()
-    Fine = serpy.IntField()
+    Greeting = serpy.StrField()
+    Fine = serpy.StrField()
 
 class D(serpy.DictSerializer):
     Hey = S1(many=True)
@@ -79,19 +79,19 @@ class D(serpy.DictSerializer):
     A_World = S()
     B_World = S(many=True)
 
+import ujson
 
 def test1():
     return cerpypy.JsonMakerCaller("Root").make(d)
 
-import ujson
+
 def test2():
     return ujson.dumps(D(d).data)
 
 print(test1())
 print(test2())
 
-t1 = timeit.timeit(test1, number=10000)
-
-t2 = timeit.timeit(test2, number=10000)
+t1 = timeit.timeit(test1)
+t2 = timeit.timeit(test2)
 
 print "t1: {}, t2 {}, t1/t2: {}".format(t1, t2, (t1/t2))
