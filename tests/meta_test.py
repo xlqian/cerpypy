@@ -47,19 +47,19 @@ d = {
     'Hey': [{
         'Greeting': 42,
         'Fine': 43
-    }]*20,
+    }]*3,
     'Hello': {
         'Here': 1,
         'There': 2
     },
     'A_World': {
-        'Here': 1,
+        'H  ere': 1,
         'There': 2
     },
     'B_World': [{
         'Here': 42,
         'There': 43
-    }]*50
+    }]*3
 }
 
 
@@ -86,12 +86,12 @@ def test1():
 
 
 def test2():
-    return ujson.dumps(D(d).data)
+    return (D(d).data)
 
 print(test1())
 print(test2())
 
-t1 = timeit.timeit(test1)
-t2 = timeit.timeit(test2)
+t1 = timeit.timeit(test1, number=100000)
+t2 = timeit.timeit(test2, number=100000)
 
 print "t1: {}, t2 {}, t1/t2: {}".format(t1, t2, (t1/t2))

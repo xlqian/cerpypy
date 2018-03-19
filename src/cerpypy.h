@@ -17,6 +17,21 @@ namespace py = pybind11;
 
 namespace cerpypy {
     const char * version();
+    using GetterType = py::object;
+
+    struct PyObjMaker{
+    	PyObjMaker()=default;
+    	PyObjMaker(const std::vector<std::tuple<int, std::string, py::object, PyTypeObject*>>& input);
+
+    	void make(const py::handle& entry, py::handle& output) const;
+    	py::dict make(const py::object& entry);
+
+    	bool is_leaf{false};
+    	PyTypeObject* objType{&PyDict_Type};
+    	py::dict _obj;
+    	//std::vector<std::tuple<int, std::string, py::object>> _makers;
+    	std::vector<std::tuple<int, int, py::object, PyTypeObject*>> _makers;
+    };
 
     struct JsonMaker{
     	JsonMaker()=default;
@@ -34,6 +49,7 @@ namespace cerpypy {
     };
 
     void register_json_maker(const std::string& cls_name, const py::list& input);
+    void register_dict_maker(const std::string& cls_name, const py::list& input);
 
     struct JsonMakerCaller{
     	JsonMakerCaller(const std::string& cls_name);
