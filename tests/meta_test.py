@@ -22,6 +22,7 @@ class Meta(type):
                 json_maker_args.append((k, maker_name, v.getter, v.object_type))
 
         cerpypy.register_json_maker(name, json_maker_args)
+        cerpypy.register_pyobj_maker(name, json_maker_args)
         return super(Meta, mcs).__new__(mcs, name, bases, dct)
 
 from operator import itemgetter
@@ -47,31 +48,38 @@ d = {
     'Hey': [{
         'Greeting': 42,
         'Fine': 43
-    }]*3,
+    }]*20,
     'Hello': {
         'Here': 1,
         'There': 2
     },
     'A_World': {
-        'H  ere': 1,
+        'Here': 1,
         'There': 2
     },
     'B_World': [{
         'Here': 42,
         'There': 43
-    }]*3
+    }]*50
 }
 
+
+
+def test1():
+    return cerpypy.JsonMakerCaller("Root").make(d)
+
+def test2():
+    return cerpypy.PyObjMakerCaller("Root").make(d)
 
 import serpy
 
 class S(serpy.DictSerializer):
-    Here = serpy.IntField()
-    There = serpy.IntField()
+    Here = serpy.Field()
+    There = serpy.Field()
 
 class S1(serpy.DictSerializer):
-    Greeting = serpy.StrField()
-    Fine = serpy.StrField()
+    Greeting = serpy.Field()
+    Fine = serpy.Field()
 
 class D(serpy.DictSerializer):
     Hey = S1(many=True)
@@ -79,19 +87,21 @@ class D(serpy.DictSerializer):
     A_World = S()
     B_World = S(many=True)
 
+
 import ujson
 
-def test1():
-    return cerpypy.JsonMakerCaller("Root").make(d)
 
-
-def test2():
+def test3():
     return (D(d).data)
 
-print(test1())
-print(test2())
 
-t1 = timeit.timeit(test1, number=100000)
-t2 = timeit.timeit(test2, number=100000)
+print('test1', test1())
+print('test2', test2())
+print('test3', test3())
 
-print "t1: {}, t2 {}, t1/t2: {}".format(t1, t2, (t1/t2))
+t1 = timeit.timeit(test1, number=1000000)
+t2 = timeit.timeit(test2, number=1000000)
+t3 = timeit.timeit(test3, number=1000000)
+
+print "t1: {}, t3 {}, t1/t3: {}".format(t1, t3, (t1/t3))
+print "t2: {}, t3 {}, t1/t3: {}".format(t2, t3, (t2/t3))

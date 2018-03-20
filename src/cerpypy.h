@@ -24,7 +24,7 @@ namespace cerpypy {
     	PyObjMaker(const std::vector<std::tuple<int, std::string, py::object, PyTypeObject*>>& input);
 
     	void make(const py::handle& entry, py::handle& output) const;
-    	py::dict make(const py::object& entry);
+    	py::dict make(const py::handle& entry);
 
     	bool is_leaf{false};
     	PyTypeObject* objType{&PyDict_Type};
@@ -49,12 +49,18 @@ namespace cerpypy {
     };
 
     void register_json_maker(const std::string& cls_name, const py::list& input);
-    void register_dict_maker(const std::string& cls_name, const py::list& input);
+    void register_pyobj_maker(const std::string& cls_name, const py::list& input);
+
+    struct PyObjMakerCaller{
+    	PyObjMakerCaller(const std::string& cls_name);
+     	py::object make(const py::object& entry) const ;
+     	std::string cls_name;
+     };
 
     struct JsonMakerCaller{
-    	JsonMakerCaller(const std::string& cls_name);
-    	std::string make(const py::object& entry) const ;
-    	std::string cls_name;
-    };
+     	JsonMakerCaller(const std::string& cls_name);
+     	std::string make(const py::object& entry) const ;
+     	std::string cls_name;
+     };
 }
 
